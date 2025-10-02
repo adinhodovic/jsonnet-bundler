@@ -1,9 +1,6 @@
 # jsonnet-bundler
 
-> NOTE: This project is *alpha* stage. Flags, configuration, behavior and design may change significantly in following releases.
-
 The jsonnet-bundler is a package manager for [Jsonnet](http://jsonnet.org/).
-
 
 ## Install
 
