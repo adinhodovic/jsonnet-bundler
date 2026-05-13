@@ -50,20 +50,22 @@ func NewGitPackage(source *deps.Git) Interface {
 
 var GitQuiet = false
 
-func downloadGitHubArchive(filepath string, url string) error {
-	// Get the data
-	resp, err := http.Get(url)
+func downloadGitHubArchive(ctx context.Context, filepath string, url string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
 	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 	if !GitQuiet {
 		color.Cyan("GET %s %d", url, resp.StatusCode)
 	}
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
-
-	defer resp.Body.Close()
 
 	// Create the file
 	out, err := os.Create(filepath)
@@ -209,7 +211,7 @@ func (p *GitPackage) Install(ctx context.Context, name, dir, version string) (st
 		archiveFilepath := fmt.Sprintf("%s.tar.gz", tmpDir)
 
 		defer os.Remove(archiveFilepath)
-		err = downloadGitHubArchive(archiveFilepath, archiveUrl)
+		err = downloadGitHubArchive(ctx, archiveFilepath, archiveUrl)
 		if err == nil {
 			var ar *os.File
 			ar, err = os.Open(archiveFilepath)
@@ -233,6 +235,9 @@ func (p *GitPackage) Install(ctx context.Context, name, dir, version string) (st
 
 		if err == nil {
 			return commitSha, nil
+		}
+		if ctx.Err() != nil {
+			return "", ctx.Err()
 		}
 
 		// The repository may be private or the archive download may not work
